@@ -82,7 +82,7 @@ namespace SoundTest
             }
             else if (sortMode == SortMode.AudioClip)
             {
-                var clips = Locator.GetAudioManager()._libraryAsset.audioEntries.SelectMany(e => e.clips).OrderBy(c => c.name);
+                var clips = Enum.GetValues(typeof(AudioType)).Cast<AudioType>().SelectMany(t => t == AudioType.None ? new AudioClip[] { } : Locator.GetAudioManager().GetAudioClipArray(t)).Where(c => c != null).OrderBy(c => c.name);
                 foreach (var clip in clips)
                 {
                     if (GUILayout.Button(clip.name))
