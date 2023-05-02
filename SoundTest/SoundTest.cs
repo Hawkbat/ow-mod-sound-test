@@ -10,10 +10,13 @@ namespace SoundTest
 {
     public class SoundTest : ModBehaviour
     {
-        readonly List<IModButton> hiddenButtons = new List<IModButton>();
+        readonly List<IModButton> hiddenButtons = new();
         bool uiOpen;
         Vector2 scrollPosition;
         SortMode sortMode;
+        AudioType selectedAudioType;
+        AudioClip selectedAudioClip;
+        OWAudioSource audioSource;
 
         private void Start()
         {
@@ -58,6 +61,11 @@ namespace SoundTest
                         hiddenButtons.Add(btn);
                     }
                 }
+                if (!audioSource)
+                {
+                    audioSource = Instantiate(Locator.GetMenuAudioController()._audioSource.gameObject).GetComponent<OWAudioSource>();
+                    Destroy(audioSource.gameObject.GetComponent<MenuAudioController>());
+                }
             }
         }
 
@@ -73,10 +81,21 @@ namespace SoundTest
                 var types = Enum.GetValues(typeof(AudioType)).Cast<AudioType>().OrderBy(t => Enum.GetName(typeof(AudioType), t));
                 foreach (var type in types)
                 {
-                    if (GUILayout.Button(Enum.GetName(typeof(AudioType), type)))
+                    if (selectedAudioType == type && audioSource.isPlaying)
                     {
-                        var clip = Locator.GetAudioManager().GetSingleAudioClip(type);
-                        Locator.GetMenuAudioController()._audioSource.PlayOneShot(clip);
+                        if (!GUILayout.Toggle(true, Enum.GetName(typeof(AudioType), type), "button"))
+                        {
+                            selectedAudioType = AudioType.None;
+                            selectedAudioClip = null;
+                            audioSource.Stop();
+                        }
+                    } else if (GUILayout.Button(Enum.GetName(typeof(AudioType), type)))
+                    {
+                        audioSource.Stop();
+                        selectedAudioType = type;
+                        selectedAudioClip = null;
+                        audioSource.AssignAudioLibraryClip(type);
+                        audioSource.Play();
                     }
                 }
             }
@@ -85,9 +104,22 @@ namespace SoundTest
                 var clips = Enum.GetValues(typeof(AudioType)).Cast<AudioType>().SelectMany(t => t == AudioType.None ? new AudioClip[] { } : Locator.GetAudioManager().GetAudioClipArray(t)).Where(c => c != null).OrderBy(c => c.name);
                 foreach (var clip in clips)
                 {
-                    if (GUILayout.Button(clip.name))
+                    if (selectedAudioClip == clip && audioSource.isPlaying)
                     {
-                        Locator.GetMenuAudioController()._audioSource.PlayOneShot(clip);
+                        if (!GUILayout.Toggle(true, clip.name, "button"))
+                        {
+                            selectedAudioClip = null;
+                            selectedAudioType = AudioType.None;
+                            audioSource.Stop();
+                        }
+                    } else if (GUILayout.Button(clip.name))
+                    {
+                        audioSource.Stop();
+                        selectedAudioClip = clip;
+                        selectedAudioType = AudioType.None;
+                        audioSource._audioLibraryClip = AudioType.None;
+                        audioSource.clip = clip;
+                        audioSource.Play();
                     }
                 }
             }
